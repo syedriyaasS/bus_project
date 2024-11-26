@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Route Planner</title>
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <!-- Custom CSS (Optional for better styling) -->
+        <style>
+            #map {
+                height: 500px;
+                width: 100%;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <h1>Route Planner</h1>
+        <form id="route-form">
+            <label for="source">Source:</label>
+            <input type="text" id="source" name="source" required>
+            <label for="destination">Destination:</label>
+            <input type="text" id="destination" name="destination" required>
+            <label for="time">Time:</label>
+            <input type="text" id="time" name="time" required>
+            <button type="submit">Get Route</button>
+        </form>
+    
+        <div id="route-info"></div>
+        <!-- Map Container -->
+        <div id="map"></div>
+    
+        <!-- Link to JavaScript -->
+        <script src="/static/app.js"></script>
+    
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    </body>
+    
+</html>
