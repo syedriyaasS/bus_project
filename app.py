@@ -1,7 +1,11 @@
+import openrouteservice
 from flask import Flask, render_template, request, jsonify
-import json
 
 app = Flask(__name__)
+
+# Initialize OpenRouteService client with your API key
+ORS_API_KEY = "5b3ce3597851110001cf6248780e38ed197e40da8323a1132ca9ae0e"
+client = openrouteservice.Client(key=ORS_API_KEY)
 
 @app.route('/')
 def index():
@@ -9,22 +13,41 @@ def index():
 
 @app.route('/get-route', methods=['POST'])
 def get_route():
-    data = request.json
-    source = data.get('source')
-    destination = data.get('destination')
-    time_of_day = data.get('time_of_day')
+    try:
+        # Extract source and destination from the request
+        data = request.json
+        source = data.get('source')
+        destination = data.get('destination')
 
-    # Log received data for debugging
-    print(f"Source: {source}, Destination: {destination}, Time: {time_of_day}")
+        # Determine if input is a coordinate pair
+        def parse_coordinates(input_value):
+            if isinstance(input_value, list) and len(input_value) == 2:
+                # Assume input_value is [longitude, latitude]
+                return input_value
+            else:
+                # Perform geocoding if input is not coordinates
+                return client.pelias_search(text=input_value)['features'][0]['geometry']['coordinates']
 
-    # Example static route data (replace with actual route calculation logic)
-    route_info = [
-        {"lat": 28.7041, "lng": 77.1025},  # Source (Delhi)
-        {"lat": 28.5355, "lng": 77.3910}   # Destination (Noida)
-    ]
+        # Parse source and destination inputs
+        source_coords = parse_coordinates(source)
+        destination_coords = parse_coordinates(destination)
 
-    # Return the route information as JSON
-    return jsonify({'status': 'success', 'route': route_info})
+        # Fetch road-based route between source and destination
+        route = client.directions(
+            coordinates=[source_coords, destination_coords],
+            profile='driving-car',
+            format='geojson'
+        )
+
+        # Extract route geometry
+        route_geometry = route['features'][0]['geometry']['coordinates']
+
+        # Return the route data
+        return jsonify({'status': 'success', 'route': route_geometry})
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'status': 'error', 'message': 'Failed to fetch the route. Please check your input.'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

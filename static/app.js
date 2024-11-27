@@ -1,55 +1,50 @@
 document.getElementById('route-form').addEventListener('submit', async function (event) {
     event.preventDefault();
+
     const source = document.getElementById('source').value;
     const destination = document.getElementById('destination').value;
-    const time_of_day = document.getElementById('time').value;
 
-    const response = await fetch('/get-route', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ source, destination, time_of_day })
-    });
+    try {
+        const response = await fetch('/get-route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source, destination })
+        });
 
-    const result = await response.json();
-    const routeInfoDiv = document.getElementById('route-info');
+        const result = await response.json();
+        const routeInfoDiv = document.getElementById('route-info');
+        const mapContainer = document.getElementById('map');
+        mapContainer.innerHTML = ''; // Clear the map for a new route
 
-    if (result.status === 'success') {
-        routeInfoDiv.textContent = `Route: ${JSON.stringify(result.route)}`;
+        if (result.status === 'success') {
+            routeInfoDiv.textContent = 'Route successfully retrieved!';
+            const route = result.route;
 
-        // Debug: Log the route to check if it contains valid coordinates
-        console.log(result.route);
+            // Initialize Leaflet map
+            const map = L.map('map').setView([route[0][1], route[0][0]], 13);
 
-        // Initialize the map
-        const map = L.map('map').setView([28.7041, 77.1025], 13); // Set center (initial) coordinates to Delhi
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
 
-        // Add tile layer (OpenStreetMap tiles)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+            // Convert route to LatLng array for Leaflet
+            const latlngs = route.map(coord => [coord[1], coord[0]]);
 
-        // Plot route markers (assuming result.route contains coordinates)
-        const route = result.route; // Array of route coordinates
-        if (Array.isArray(route) && route.length > 0) {
-            const sourceCoordinates = route[0];  // Assuming the first coordinate is the source
-            const destinationCoordinates = route[route.length - 1];  // Last coordinate as destination
+            // Add the polyline to the map
+            L.polyline(latlngs, { color: 'blue', weight: 5 }).addTo(map);
+
+            // Fit map bounds to the route
+            map.fitBounds(L.polyline(latlngs).getBounds());
 
             // Add markers for source and destination
-            L.marker(sourceCoordinates).addTo(map)
-                .bindPopup("Source")
-                .openPopup();
-
-            L.marker(destinationCoordinates).addTo(map)
-                .bindPopup("Destination")
-                .openPopup();
-
-            // Draw a polyline (path between source and destination)
-            const latlngs = route.map(coord => [coord.lat, coord.lng]); // Assuming route contains {lat, lng} objects
-            L.polyline(latlngs, { color: 'blue' }).addTo(map);
-            map.fitBounds(latlngs); // Automatically zoom to fit the route
+            L.marker(latlngs[0]).addTo(map).bindPopup('Source').openPopup();
+            L.marker(latlngs[latlngs.length - 1]).addTo(map).bindPopup('Destination').openPopup();
+        } else {
+            routeInfoDiv.textContent = `Error: ${result.message}`;
         }
-    } else {
-        routeInfoDiv.textContent = `Error: ${result.message}`;
+    } catch (error) {
+        console.error('Error fetching the route:', error);
+        document.getElementById('route-info').textContent = 'Failed to fetch the route. Please try again.';
     }
 });
